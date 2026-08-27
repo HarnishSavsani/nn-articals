@@ -60,7 +60,7 @@ export function processMessage(
   if (data instanceof ArrayBuffer) {
     buffer = data;
   } else if (data instanceof Uint8Array) {
-    buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+    buffer = (data.buffer as ArrayBuffer).slice(data.byteOffset, data.byteOffset + data.byteLength);
   }
 
   if (buffer) {
