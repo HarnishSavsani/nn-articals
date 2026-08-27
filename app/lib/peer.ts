@@ -87,7 +87,6 @@ export function createReceiverPeer(code: string): Promise<{
       const targetId = codeToPeerId(code);
       const conn = peer.connect(targetId, {
         reliable: true,
-        serialization: 'none',
       });
 
       conn.on('open', () => {
