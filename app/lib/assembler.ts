@@ -54,15 +54,23 @@ export function processMessage(
     }
   }
 
-  // ArrayBuffer = file chunk
+  // ArrayBuffer or Uint8Array = file chunk
+  // PeerJS binary serialization may deliver either type
+  let buffer: ArrayBuffer | null = null;
   if (data instanceof ArrayBuffer) {
+    buffer = data;
+  } else if (data instanceof Uint8Array) {
+    buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  }
+
+  if (buffer) {
     if (!state.metadata) {
       return { event: 'error', error: 'Received chunk before metadata' };
     }
 
-    state.chunks.push(data);
+    state.chunks.push(buffer);
     state.receivedCount++;
-    state.bytesReceived += data.byteLength;
+    state.bytesReceived += buffer.byteLength;
 
     const elapsedMs = Date.now() - state.startTime;
     const speedBytesPerSec =
