@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-nexus-50: #f0f0fe;
+  --color-nexus-100: #e0e0fd;
+  --color-nexus-200: #c2c2fb;
+  --color-nexus-300: #9b9bf8;
+  --color-nexus-400: #7a7af5;
+  --color-nexus-500: #5151EC;
+  --color-nexus-600: #4343c9;
+  --color-nexus-700: #3636a6;
+  --color-nexus-800: #2a2a83;
+  --color-nexus-900: #1e1e60;
+  --color-nexus-950: #12123d;
+
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-surface: #f9fafb;
+  --color-surface-hover: #f3f4f6;
+  --color-border: #e5e7eb;
+  --color-muted: #6b7280;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.dark {
+  --color-background: #030712;
+  --color-foreground: #f9fafb;
+  --color-surface: #111827;
+  --color-surface-hover: #1f2937;
+  --color-border: #1f2937;
+  --color-muted: #9ca3af;
+}
