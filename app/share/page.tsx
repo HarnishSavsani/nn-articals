@@ -14,7 +14,9 @@ import { sendFile, type TransferProgress as Progress } from '../lib/chunker';
 import {
   createAssembler,
   processMessage,
-  downloadFile,
+  buildDownloadUrl,
+  triggerDownload,
+  revokeDownloadUrl,
   formatBytes,
   type AssemblerState,
 } from '../lib/assembler';
@@ -36,10 +38,15 @@ export default function SharePage() {
   } | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [downloadInfo, setDownloadInfo] = useState<{
+    url: string;
+    filename: string;
+  } | null>(null);
 
   const peerRef = useRef<Peer | null>(null);
   const connRef = useRef<DataConnection | null>(null);
   const assemblerRef = useRef<AssemblerState | null>(null);
+  const completedRef = useRef(false); // tracks completion across closures
 
   // Cleanup on unmount or mode change
   useEffect(() => {
@@ -55,6 +62,8 @@ export default function SharePage() {
     peerRef.current = null;
     connRef.current = null;
     assemblerRef.current = null;
+    completedRef.current = false;
+    if (downloadInfo?.url) revokeDownloadUrl(downloadInfo.url);
     setMode('choose');
     setConnectionState('idle');
     setCode('');
@@ -62,7 +71,8 @@ export default function SharePage() {
     setReceivedMeta(null);
     setProgress(null);
     setError(null);
-  }, []);
+    setDownloadInfo(null);
+  }, [downloadInfo]);
 
   // ── SENDER FLOW ──────────────────────────────────────────────
 
@@ -106,6 +116,7 @@ export default function SharePage() {
       setCode(enteredCode);
       setConnectionState('connecting');
       setError(null);
+      completedRef.current = false;
 
       const { peer, conn, destroy } = await createReceiverPeer(enteredCode);
       peerRef.current = peer;
@@ -134,13 +145,17 @@ export default function SharePage() {
               setProgress(result.progress);
             }
             break;
-          case 'complete':
+          case 'complete': {
+            completedRef.current = true;
             setConnectionState('completed');
-            downloadFile(assembler);
-            setTimeout(() => {
-              conn.close();
-            }, 2000);
+
+            // Build download URL and attempt auto-download
+            const info = buildDownloadUrl(assembler);
+            setDownloadInfo(info);
+            triggerDownload(info.url, info.filename);
+
             break;
+          }
           case 'error':
             setConnectionState('error');
             setError(result.error ?? 'Transfer error');
@@ -148,22 +163,25 @@ export default function SharePage() {
         }
       });
 
+      // Use ref instead of state to avoid stale closure
       conn.on('close', () => {
-        if (connectionState !== 'completed') {
+        if (!completedRef.current) {
           setConnectionState('error');
           setError('Connection closed by sender');
         }
       });
 
       conn.on('error', (err) => {
-        setConnectionState('error');
-        setError(err.message);
+        if (!completedRef.current) {
+          setConnectionState('error');
+          setError(err.message);
+        }
       });
     } catch (err) {
       setConnectionState('error');
       setError(err instanceof Error ? err.message : 'Failed to connect');
     }
-  }, [connectionState]);
+  }, []);
 
   // ── RENDER ───────────────────────────────────────────────────
 
@@ -327,12 +345,28 @@ export default function SharePage() {
           )}
 
           {connectionState === 'completed' && (
-            <button
-              onClick={resetState}
-              className="w-full rounded-lg border border-nexus-500 px-4 py-3 font-medium text-nexus-500 transition-colors hover:bg-nexus-500/5"
-            >
-              Receive Another Resource
-            </button>
+            <div className="space-y-3">
+              {downloadInfo && (
+                <a
+                  href={downloadInfo.url}
+                  download={downloadInfo.filename}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-nexus-500 px-4 py-3 font-medium text-white transition-colors hover:bg-nexus-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Save File — {downloadInfo.filename}
+                </a>
+              )}
+              <button
+                onClick={resetState}
+                className="w-full rounded-lg border border-nexus-500 px-4 py-3 font-medium text-nexus-500 transition-colors hover:bg-nexus-500/5"
+              >
+                Receive Another Resource
+              </button>
+            </div>
           )}
         </div>
       )}
