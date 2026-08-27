@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-nexus-50: #f0f0fe;
+  --color-nexus-100: #e0e0fd;
+  --color-nexus-200: #c2c2fb;
+  --color-nexus-300: #9b9bf8;
+  --color-nexus-400: #7a7af5;
+  --color-nexus-500: #5151EC;
+  --color-nexus-600: #4343c9;
+  --color-nexus-700: #3636a6;
+  --color-nexus-800: #2a2a83;
+  --color-nexus-900: #1e1e60;
+  --color-nexus-950: #12123d;
+
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-surface: #f9fafb;
+  --color-surface-hover: #f3f4f6;
+  --color-surface-alt: #f3f4f6;
+  --color-border: #e5e7eb;
+  --color-muted: #6b7280;
+
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-ring: #5151EC33;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.dark {
+  --color-background: #030712;
+  --color-foreground: #f9fafb;
+  --color-surface: #111827;
+  --color-surface-hover: #1f2937;
+  --color-surface-alt: #0f172a;
+  --color-border: #374151;
+  --color-muted: #9ca3af;
+
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-ring: #5151EC4D;
+}
+
+/* Hide scrollbar for horizontal scroll containers */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
