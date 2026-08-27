@@ -4,24 +4,28 @@ const PEER_ID_PREFIX = 'nexushare-';
 const CONNECTION_TIMEOUT = 30_000; // 30s — corporate networks are slow
 
 const ICE_SERVERS: RTCIceServer[] = [
-  // STUN — discovers your public IP / port mapping
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  // TURN — relay fallback when STUN can't punch through (corporate symmetric NAT)
+  // STUN — discovers public IP / port mapping
+  { urls: 'stun:stun.relay.metered.ca:80' },
+  // TURN — relay fallback for corporate symmetric NAT
   {
-    urls: 'turn:openrelay.metered.ca:80',
-    username: 'openrelayproject',
-    credential: 'openrelayproject',
+    urls: 'turn:global.relay.metered.ca:80',
+    username: '5f7d9eddda5a99dd6130b98f',
+    credential: '6/mFLgIoLPyOsoxw',
   },
   {
-    urls: 'turn:openrelay.metered.ca:443',
-    username: 'openrelayproject',
-    credential: 'openrelayproject',
+    urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+    username: '5f7d9eddda5a99dd6130b98f',
+    credential: '6/mFLgIoLPyOsoxw',
   },
   {
-    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-    username: 'openrelayproject',
-    credential: 'openrelayproject',
+    urls: 'turn:global.relay.metered.ca:443',
+    username: '5f7d9eddda5a99dd6130b98f',
+    credential: '6/mFLgIoLPyOsoxw',
+  },
+  {
+    urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+    username: '5f7d9eddda5a99dd6130b98f',
+    credential: '6/mFLgIoLPyOsoxw',
   },
 ];
 
