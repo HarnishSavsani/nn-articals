@@ -99,27 +99,53 @@ export function processMessage(
   return { event: 'error', error: `Unexpected data type: ${typeof data}` };
 }
 
-export function downloadFile(state: AssemblerState): void {
+/**
+ * Build a download URL from the received chunks.
+ * Does NOT auto-trigger download — caller decides when/how.
+ * Returns { url, filename } so the UI can show a download button.
+ */
+export function buildDownloadUrl(state: AssemblerState): {
+  url: string;
+  filename: string;
+} {
   if (!state.metadata || !state.isComplete) {
-    throw new Error('Cannot download: transfer not complete');
+    throw new Error('Cannot build URL: transfer not complete');
   }
 
   const blob = new Blob(state.chunks, { type: state.metadata.mimeType });
   const url = URL.createObjectURL(blob);
 
+  // Release chunk memory — blob already holds the data
+  state.chunks = [];
+
+  return { url, filename: state.metadata.name };
+}
+
+/**
+ * Trigger a browser download from a blob URL.
+ * Works on desktop; on mobile, the fallback download button is more reliable.
+ */
+export function triggerDownload(url: string, filename: string): void {
   const a = document.createElement('a');
   a.href = url;
-  a.download = state.metadata.name;
+  a.download = filename;
+  a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
 
+  // Generous timeout — mobile browsers are slow to pick up the download
   setTimeout(() => {
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 100);
+  }, 5000);
+}
 
-  // Release chunk memory
-  state.chunks = [];
+/**
+ * Revoke a blob URL to free memory. Call when user navigates away or resets.
+ */
+export function revokeDownloadUrl(url: string): void {
+  try {
+    URL.revokeObjectURL(url);
+  } catch { /* ignore */ }
 }
 
 export function formatBytes(bytes: number): string {
