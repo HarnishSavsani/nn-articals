@@ -1,9 +1,28 @@
 import Peer, { DataConnection } from 'peerjs';
 
 const PEER_ID_PREFIX = 'nexushare-';
-const STUN_SERVERS = [
+const CONNECTION_TIMEOUT = 30_000; // 30s — corporate networks are slow
+
+const ICE_SERVERS: RTCIceServer[] = [
+  // STUN — discovers your public IP / port mapping
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
+  // TURN — relay fallback when STUN can't punch through (corporate symmetric NAT)
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
 ];
 
 export type ConnectionState =
@@ -33,23 +52,31 @@ export function createSenderPeer(code: string): Promise<{
   return new Promise((resolve, reject) => {
     const peerId = codeToPeerId(code);
     const peer = new Peer(peerId, {
-      debug: 0,
-      config: { iceServers: STUN_SERVERS },
+      debug: 1,
+      config: { iceServers: ICE_SERVERS },
     });
 
     const timeoutId = setTimeout(() => {
       peer.destroy();
-      reject(new Error('Peer registration timed out (15s)'));
-    }, 15000);
+      reject(new Error('Peer registration timed out — signaling server may be unreachable'));
+    }, CONNECTION_TIMEOUT);
 
     peer.on('open', () => {
       clearTimeout(timeoutId);
       resolve({
         peer,
         waitForReceiver: () =>
-          new Promise<DataConnection>((res) => {
+          new Promise<DataConnection>((res, rej) => {
+            const waitTimeout = setTimeout(() => {
+              peer.destroy();
+              rej(new Error('No receiver connected within 2 minutes — share the code and have them connect'));
+            }, 120_000);
+
             peer.on('connection', (conn: DataConnection) => {
-              conn.on('open', () => res(conn));
+              conn.on('open', () => {
+                clearTimeout(waitTimeout);
+                res(conn);
+              });
             });
           }),
         destroy: () => peer.destroy(),
@@ -74,14 +101,14 @@ export function createReceiverPeer(code: string): Promise<{
 }> {
   return new Promise((resolve, reject) => {
     const peer = new Peer({
-      debug: 0,
-      config: { iceServers: STUN_SERVERS },
+      debug: 1,
+      config: { iceServers: ICE_SERVERS },
     });
 
     const timeoutId = setTimeout(() => {
       peer.destroy();
-      reject(new Error('Connection timed out (15s)'));
-    }, 15000);
+      reject(new Error('Connection timed out — the sender code may be wrong or networks can\'t reach each other'));
+    }, CONNECTION_TIMEOUT);
 
     peer.on('open', () => {
       const targetId = codeToPeerId(code);
